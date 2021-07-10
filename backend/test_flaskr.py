@@ -1,4 +1,3 @@
-from config import PASSWORD, TEST_DB_NAME, USERNAME
 import os
 import unittest
 import json
@@ -15,9 +14,9 @@ class TriviaTestCase(unittest.TestCase):
         """Define test variables and initialize app."""
         self.app = create_app()
         self.client = self.app.test_client
-        self.database_name = TEST_DB_NAME
-        database_user = USERNAME
-        database_pass = PASSWORD
+        self.database_name = "trivia"
+        database_user = "postgres"
+        database_pass = "postgres"
         self.database_path = "postgresql://{}:{}@{}/{}".format(
             database_user, database_pass, 'localhost:5432', self.database_name)
         setup_db(self.app, self.database_path)
@@ -27,91 +26,86 @@ class TriviaTestCase(unittest.TestCase):
             self.db = SQLAlchemy()
             self.db.init_app(self.app)
             # create all tables
-            self.db.create_all()
+            # self.db.create_all()
 
     def tearDown(self):
         """Executed after reach test"""
         pass
 
-    def test_get_questions(self):
-        res = self.client().get('/questions')
-        data = json.loads(res.data)
 
-        self.assertEqual(res.status_code, 200)
-        self.assertEqual(data['success'], True)
-        self.assertTrue(data['total_questions'])
-        self.assertTrue(len(data['questions']))
-        
-    def test_get_categories(self):
+    def test_getCategories(self):
         res = self.client().get('/categories')
         data = json.loads(res.data)
 
         self.assertEqual(res.status_code, 200)
-        self.assertEqual(data['success'], True)
-        self.assertTrue(len(data['categories']))
+        self.assertIsNotNone(data['categories'])
 
-    def test_add_question(self):
-        new_question = {
-            'question': 'test_question',
-            'answer': 'test_answer',
+
+    def test_getQuestions(self):
+        res = self.client().get('/questions?page=1')
+        data = json.loads(res.data)
+
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(data['total_questions'])
+        self.assertIsNotNone(data['questions'])
+
+    def test_getQuestionsByCategory(self):
+        res = self.client().get('/categories/5/questions')
+        data = json.loads(res.data)
+
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(len(data['questions']))
+        self.assertIsNotNone(data['totalQuestions'])
+        self.assertIsNotNone(data['currentCategory'])
+
+    def test_addQuestion(self):
+        question = {
+            'question': 'testQuestion',
+            'answer': 'testAnswer',
             'difficulty': 1,
             'category': 1
         }
-        
-        res = self.client().post('/questions', json=new_question)
+
+        res = self.client().post('/questions', json=question)
         data = json.loads(res.data)
-        
+
         question = Question.query.filter(
-            Question.question == 'test_question').one_or_none()
+            Question.question == 'testQuestion').one_or_none()
 
         self.assertEqual(res.status_code, 200)
-        self.assertEqual(data["success"], True)
-        self.assertEqual(question.question , 'test_question')
+        self.assertEqual(question.question , 'testQuestion')
+        self.assertEqual(question.answer , 'testAnswer')
+        self.assertEqual(question.difficulty , 1)
+        self.assertEqual(question.category , 1)
 
-    def test_delete_question(self):
-        question = Question(question='test_question', answer='test_answer',
-                            difficulty=1, category=1)
-        question.insert()
+    def test_deleteQuestion(self):
+        question = Question.query.filter(
+            Question.question == 'testQuestion').one_or_none()
         question_id = question.id
 
         res = self.client().delete(f'/questions/{question_id}')
         data = json.loads(res.data)
 
-        question = Question.query.filter(
-            Question.id == question.id).one_or_none()
+        question = Question.query.filter(Question.id == question.id).one_or_none()
 
         self.assertEqual(res.status_code, 200)
-        self.assertEqual(data['success'], True)
         self.assertEqual(data['deleted'], str(question_id))
-        self.assertEqual(question, None)
 
-    
 
     def test_search_questions(self):
-        new_search = {'searchTerm': 'a'}
-        res = self.client().post('/questions/search', json=new_search)
+        search = {'searchTerm': 'heav'}
+        res = self.client().post('/questions/search', json=search)
         data = json.loads(res.data)
 
         self.assertEqual(res.status_code, 200)
-        self.assertEqual(data['success'], True)
         self.assertIsNotNone(data['questions'])
         self.assertIsNotNone(data['total_questions'])
 
-    def test_get_questions_per_category(self):
-        res = self.client().get('/categories/1/questions')
-        data = json.loads(res.data)
-
-        self.assertEqual(res.status_code, 200)
-        self.assertEqual(data['success'], True)
-        self.assertTrue(len(data['questions']))
-        self.assertTrue(data['total_questions'])
-        self.assertTrue(data['current_category'])
-
     def test_play_quiz(self):
-        new_quiz_round = {'previous_questions': [],
-                          'quiz_category': {'type': 'Entertainment', 'id': 5}}
+        query = {'previous_questions': [2,11],
+                          'quiz_category': {'type': 'click', 'id': 0}}
 
-        res = self.client().post('/quizzes', json=new_quiz_round)
+        res = self.client().post('/quizzes', json=query)
         data = json.loads(res.data)
 
         self.assertEqual(res.status_code, 200)
