@@ -38,23 +38,21 @@ def create_app(test_config=None):
 
     @app.route('/questions')
     def retrieve_questions():
-        questions = Question.query.all()
+        
 
         page = request.args.get('page', 1, type=int)
-        start = (page - 1) * QUESTIONS_PER_PAGE
-        end = start + QUESTIONS_PER_PAGE
+        current_index = page-1
 
-        questions = [question.format() for question in questions]
-        current_questions = questions[start:end]
+        questions = Question.query.order_by(Question.id).limit(QUESTIONS_PER_PAGE).offset(current_index * QUESTIONS_PER_PAGE).all()
 
         categories = Category.query.order_by(Category.type).all()
 
-        if len(current_questions) == 0:
+        if len(questions) == 0:
             abort(404)
 
         return jsonify({
             'success': True,
-            'questions': current_questions,
+            'questions': [question.format() for question in questions],
             'total_questions': len(questions),
             'categories': {category.id: category.type for category in categories},
             'current_category': None
@@ -70,7 +68,7 @@ def create_app(test_config=None):
                 'success': True,
                 'deleted': question_id
             })
-        except:
+        except Exception as e:
             abort(422)
 
     @app.route("/questions", methods=['POST'])
@@ -95,7 +93,7 @@ def create_app(test_config=None):
                 'created': question.id,
             })
 
-        except:
+        except Exception as e:
             abort(422)
 
     @app.route('/questions/search', methods=['POST'])
@@ -128,7 +126,7 @@ def create_app(test_config=None):
                 'total_questions': len(questions),
                 'current_category': category_id
             })
-        except:
+        except Exception as e:
             abort(404)
 
     @app.route('/quizzes', methods=['POST'])
@@ -158,7 +156,7 @@ def create_app(test_config=None):
                 'success': True,
                 'question': new_question
             })
-        except:
+        except Exception as e:
             abort(422)
 
     @app.errorhandler(400)

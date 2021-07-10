@@ -1,3 +1,4 @@
+from config import PASSWORD, TEST_DB_NAME, USERNAME
 import os
 import unittest
 import json
@@ -14,9 +15,9 @@ class TriviaTestCase(unittest.TestCase):
         """Define test variables and initialize app."""
         self.app = create_app()
         self.client = self.app.test_client
-        self.database_name = "trivia"
-        database_user = "postgres"
-        database_pass = "postgres"
+        self.database_name = TEST_DB_NAME
+        database_user = USERNAME
+        database_pass = PASSWORD
         self.database_path = "postgresql://{}:{}@{}/{}".format(
             database_user, database_pass, 'localhost:5432', self.database_name)
         setup_db(self.app, self.database_path)
